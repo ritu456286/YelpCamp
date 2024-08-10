@@ -2,6 +2,11 @@ const express = require("express");
 const path = require('path');
 const mongoose = require("mongoose");
 const methodOverride = require('method-override');
+const engine = require('ejs-mate');
+const catchAsync = require('./utils/catchAsync');
+const ExpressError = require('./utils/ExpressError');
+// const Joi = require('joi');
+const { campgroundValidationSchema } = require('./schemas');
 const Campground = require("./models/campground");
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp');
@@ -14,11 +19,31 @@ db.once('open', () =>{
 
 const app = express();
 
+// use ejs-locals for all ejs templates:
+app.engine('ejs', engine);
+
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, 'views'));
 
 app.use(express.urlencoded({extended: true}));
 app.use(methodOverride('_method'));
+
+
+//defining custom middleware[a function that u want to apply before res and after req]
+const validateCampground = (req, res, next) => {
+    
+    const { error, value } = campgroundValidationSchema.validate(req.body);
+    // console.log(msg);
+    if(error){
+        const msg = error.details.map(el => el.message).join(',');
+        throw new ExpressError(msg, 400);      
+    }else{
+        //if everything is fine, call the next middleware, absolutely necessary, else this will keep us stuck here in this middleware only
+        next();
+
+    }
+}
+
 
 app.get('/', (req, res) =>{
     res.render('home');
@@ -33,30 +58,46 @@ app.get('/campgrounds/new', (req, res) => {
     res.render('campgrounds/new');
 })
 
-app.get('/campgrounds/:id', async (req, res) =>{
-    const campground = await Campground.findById(req.params.id);
+//SHOW
+app.get('/campgrounds/:id', catchAsync(async (req, res, next) =>{
+    const {id} = req.params;
+    const campground = await Campground.findById(id);
     res.render('campgrounds/show', { campground } );
-})
+}));
 
-app.get('/campgrounds/:id/edit', async (req, res) =>{
+app.get('/campgrounds/:id/edit', catchAsync(async (req, res) =>{
     const campground = await Campground.findById(req.params.id);
     res.render('campgrounds/edit', { campground });
-})
+}));
 
-app.post('/campgrounds', async (req, res) =>{
-    const campground = new Campground(req.body.campground);
-    await campground.save();
-    res.redirect(`/campgrounds/${campground._id}`);
-})
+app.post('/campgrounds', validateCampground, catchAsync(async (req, res, next) =>{ 
+    const { campground } = req.body;
 
-app.put('/campgrounds/:id', async (req, res) => {
+    //using joi to validate the data, also used bootstrap to validate the client data form
+
+    const newCampground = new Campground(campground);
+    await newCampground.save();
+    res.redirect(`/campgrounds/${newCampground._id}`);
+}));
+
+app.put('/campgrounds/:id', validateCampground, catchAsync(async (req, res) => {
     const campground = await Campground.findByIdAndUpdate(req.params.id, req.body.campground);
     res.redirect(`/campgrounds/${campground._id}`);
-})
+}));
 
-app.delete('/campgrounds/:id', async (req, res) => {
+app.delete('/campgrounds/:id', catchAsync(async (req, res) => {
     await Campground.findByIdAndDelete(req.params.id);
     res.redirect('/campgrounds');
+}));
+
+app.all('*', (req, res, next) => {
+    next(new ExpressError("Page not found", 404));
+})
+
+app.use((err, req, res, next) => {
+    const { statusCode = 500} = err;
+    if(!err.message) err.message = "Something went wrong";
+    res.status(statusCode).render('error', { err });
 })
 
 app.listen(3000, () =>{
