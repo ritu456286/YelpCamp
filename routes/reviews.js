@@ -1,50 +1,21 @@
 const express = require('express');
 const router = express.Router({mergeParams: true});
-
-const { reviewValidationSchema } = require('../schemas');
 const catchAsync = require('../utils/catchAsync');
-const ExpressError = require('../utils/ExpressError');
-
-const Review = require("../models/review");
-const Campground = require("../models/campground");
-
-
-const validateReview = (req, res, next) => {
-
-    const { error, value } = reviewValidationSchema.validate(req.body);
-    if(error){
-        const msg = error.details.map(el => el.message).join(',');
-        throw new ExpressError(msg, 400);
-    }else{
-        next();
-    }
-}
+const { validateReview, isLoggedIn, isReviewAuthor } = require('../middleware');
+const reviews = require('../controllers/reviews');
 
 //delete a review
-router.delete('/:reviewId', catchAsync(async (req, res) => {
-    const {id, reviewId} = req.params;
-    // const campground = await Campground.findById(req.params.id);
-    // campground.reviews.filter(review => review.toString() != req.params.reviewId);
-    // await campground.save();
-
-    await Campground.findByIdAndUpdate(id, { $pull: { reviews: reviewId }});
-
-    await Review.findByIdAndDelete(req.params.reviewId);
-    req.flash('success', 'Successfully deleted your review!');
-    res.redirect(`/campgrounds/${req.params.id}`);
-}));
-
+router.delete('/:reviewId', 
+    isLoggedIn, 
+    isReviewAuthor, 
+    catchAsync(reviews.deleteReview));
 
 
 //saving new reviews
-router.post('/', validateReview, catchAsync(async(req, res) => {
-    const newReview = await new Review(req.body.review);
-    const campground = await Campground.findById(req.params.id);
-    campground.reviews.push(newReview);
-    await campground.save();
-    await newReview.save();
-    req.flash('success', 'Successfully added your review!');
-    res.redirect(`/campgrounds/${campground._id}`);
-}))
+router.post('/', 
+    isLoggedIn, 
+    validateReview, 
+    catchAsync(reviews.createReview));
+
 
 module.exports = router;
