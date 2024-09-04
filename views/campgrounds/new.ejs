@@ -1,8 +1,9 @@
 <%- layout('./layouts/boilerplate') %>
+<link rel="stylesheet" href="/styles/images.css" class="rel"> 
 <div class="row">
     <h1 class="text-center">New Campground</h1>
     <div class="col-6 offset-3">
-        <form method="post" action="/campgrounds" novalidate class="validated-form">
+        <form method="post" action="/campgrounds" novalidate class="validated-form" enctype="multipart/form-data">
             <div class="mb-3">
                 <label class="form-label" for="title">Title</label>
                 <input class="form-control" type="text" name="campground[title]" id="title" required>
@@ -23,16 +24,16 @@
                     Please choose a location.
                 </div>
             </div>
+            <!-- IMAGE -->
             <div class="mb-3">
-                <label class="form-label" for="image">Image Url</label>
-                <input class="form-control" type="text" name="campground[image]" id="image" required>
-                <div class="valid-feedback">
-                    Looks good!
+                <label class="form-label">Choose Image(s)</label>
+                <div class="form-file custom-file">
+                    <input class="form-control custom-file-input" type="file" id="images" name="images" multiple onchange="previewMultiple(event)">
+                    <label for="images" class="form-label custom-file-label"></label>
                 </div>
-                <div class="invalid-feedback">
-                    Please choose an image.
-                </div>
+                <div id="formFile"></div>
             </div>
+             <!-- <input type="file" name="images" multiple>  -->
             <div class="mb-3">
                 <label class="form-label" for="price">Campground Price</label>
                 <div class="input-group mb-3">    

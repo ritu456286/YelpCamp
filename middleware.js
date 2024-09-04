@@ -24,6 +24,7 @@ module.exports.storeReturnTo = (req, res, next) => {
 module.exports.validateCampground = (req, res, next) => {
     
     const { error, value } = campgroundValidationSchema.validate(req.body);
+    console.log(req.body);
     // console.log(msg);
     if(error){
         const msg = error.details.map(el => el.message).join(',');
