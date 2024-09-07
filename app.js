@@ -2,9 +2,6 @@ if(process.env.NODE_ENV !== "production")
 {
     require("dotenv").config();
 }
-// console.log("hello");
-// console.log(process.env.CLOUDINARY_SECRET)
-
 
 const express = require("express");
 const path = require('path');
@@ -20,6 +17,7 @@ const flash = require('connect-flash');
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 const User = require('./models/user');
+const mongoSanitize = require('express-mongo-sanitize');
 
 
 mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp');
@@ -58,15 +56,22 @@ app.use(passport.initialize());
 app.use(passport.session());
 passport.use(new LocalStrategy(User.authenticate())) //use Local strategy and apply the method on user model i.e. authenticate - provide by passport-local-mongoose
 
+
+// To prevent noSQL injection
+app.use(mongoSanitize());
+
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
 app.use((req, res, next) => {
+    // console.log(req.query);
     res.locals.currentUser = req.user;
     res.locals.success = req.flash('success');
     res.locals.error = req.flash('error');
     next();
 })
+
+
 
 app.use('/campgrounds', campgroundsRouter); //prefixing the campgrounds router with /campgrounds
 app.use('/campgrounds/:id/reviews', reviewsRouter);

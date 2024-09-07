@@ -13,6 +13,7 @@ module.exports.isLoggedIn = (req, res, next) => {
     next();
 }
 
+//stores the returning url
 module.exports.storeReturnTo = (req, res, next) => {
     if(req.session.returnTo){
         res.locals.returnTo = req.session.returnTo;
@@ -24,8 +25,6 @@ module.exports.storeReturnTo = (req, res, next) => {
 module.exports.validateCampground = (req, res, next) => {
     
     const { error, value } = campgroundValidationSchema.validate(req.body);
-    console.log(req.body);
-    // console.log(msg);
     if(error){
         const msg = error.details.map(el => el.message).join(',');
         throw new ExpressError(msg, 400);      

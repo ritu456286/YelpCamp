@@ -4,12 +4,10 @@ const maptilerClient = require("@maptiler/client");
 maptilerClient.config.apiKey = process.env.MAPTILER_API_KEY;
 
 const Campground = require("../models/campground");
+
+
 module.exports.index = async (req, res) =>{
     const campgrounds = await Campground.find({});
-    // console.log(campgrounds);
-    // for(let camp of campgrounds){
-    //     console.log(camp.images[0].url);
-    // }
     res.render('campgrounds/index', { campgrounds } );
 }
 
