@@ -1,6 +1,9 @@
 const { cloudinary } = require("../cloudinary");
-const Campground = require("../models/campground");
 
+const maptilerClient = require("@maptiler/client");
+maptilerClient.config.apiKey = process.env.MAPTILER_API_KEY;
+
+const Campground = require("../models/campground");
 module.exports.index = async (req, res) =>{
     const campgrounds = await Campground.find({});
     // console.log(campgrounds);
@@ -8,7 +11,6 @@ module.exports.index = async (req, res) =>{
     //     console.log(camp.images[0].url);
     // }
     res.render('campgrounds/index', { campgrounds } );
-    res.send("hello");
 }
 
 module.exports.renderNewForm = (req, res) => {
@@ -17,15 +19,17 @@ module.exports.renderNewForm = (req, res) => {
 
 module.exports.createCampground = async (req, res, next) =>{ 
 
-    
+    const geoData = await maptilerClient.geocoding.forward(req.body.campground.location, { limit: 1 });
+
     const { campground } = req.body;
     const newCampground = new Campground(campground);
+    newCampground.geometry = geoData.features[0].geometry;
     newCampground.images = req.files.map(file => ({url: file.path, filename: file.filename}));
     //using joi to validate the data, also used bootstrap to validate the client data form
 
     newCampground.author = req.user._id;
     await newCampground.save();
-    console.log(newCampground);
+    // console.log(newCampground);
     req.flash("success", 'successfully made the campground');
     res.redirect(`/campgrounds/${newCampground._id}`);
 }
@@ -58,6 +62,8 @@ module.exports.updateCampground = async (req, res) => {
     const { id } = req.params;
     const campground = await Campground.findByIdAndUpdate(id, req.body.campground);
     // console.log(campground);
+    const geoData = await maptilerClient.geocoding.forward(req.body.campground.location, { limit: 1 });
+campground.geometry = geoData.features[0].geometry;
     const imagesArray = req.files.map(file => ({url: file.path, filename: file.filename}));
     campground.images.push(...imagesArray);
     await campground.save();

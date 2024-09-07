@@ -1,28 +1,33 @@
 <%- layout('./layouts/boilerplate') %>
+<div id="map" style="width:100%; height: 500px"></div>
 <h1>All Campgrounds</h1>
-            <ul>     
-                <% for(let camp of campgrounds) {%>
-        
-                    <div class="card mb-3">
-                        <div class="row g-0">
-                            <div class="col-md-4">
-                                <% if(camp.images){ %>
-                                    <img src="<%=camp.images[0].url%>" class=" img-fluid rounded-start h-auto" alt="campground-image">
-                                <% } else {%>
-                                    <img src="https://i.pinimg.com/originals/c8/aa/33/c8aa332d4560f1e91126a8c86b099720.jpg" class=" img-fluid rounded-start h-auto" alt="campground-image">
-                                <% } %>
-                                
-                            </div>
-                            <div class="col-md-8">
-                                <div class="card-body">
-                                  <h5 class="card-title"><%= camp.title %></h5>
-                                  <p class="card-text"><%= camp.description %></p>
-                                  <a href="/campgrounds/<%=camp._id%>" class="btn btn-primary">More details</a>
-                                </div>
-                            </div>
+    <ul>     
+        <% for(let camp of campgrounds) {%>
+
+            <div class="card mb-3">
+                <div class="row g-0">
+                    <div class="col-md-4">
+                        <% if(camp.images.length){ %>
+                            <img src="<%=camp.images[0].url%>" class=" img-fluid rounded-start h-auto" alt="campground-image">
+                        <% } else {%>
+                            <img src="https://i.pinimg.com/originals/c8/aa/33/c8aa332d4560f1e91126a8c86b099720.jpg" class=" img-fluid rounded-start h-auto" alt="campground-image">
+                        <% } %>
+                        
+                    </div>
+                    <div class="col-md-8">
+                        <div class="card-body">
+                            <h5 class="card-title"><%= camp.title %></h5>
+                            <p class="card-text"><%= camp.description %></p>
+                            <a href="/campgrounds/<%=camp._id%>" class="btn btn-primary">More details</a>
                         </div>
                     </div>
-                    <% }%>
-            </ul>
-            <!-- <a href="/campgrounds/new">Add Campground</a> -->
-            <button class="btn btn-success" onclick="window.location.href='/campgrounds/new'">Add Campground</button>
+                </div>
+            </div>
+            <% }%>
+    </ul>
+    <button class="btn btn-success" onclick="window.location.href='/campgrounds/new'">Add Campground</button>
+<script>
+    const maptilerApiKey = '<%- process.env.MAPTILER_API_KEY %>';
+    const campgrounds = { features: <%- JSON.stringify(campgrounds) %>}
+</script>
+<script src="/scripts/clusterMap.js"></script>
