@@ -13,16 +13,19 @@ const campgroundsRouter = require('./routes/campgrounds');
 const reviewsRouter = require('./routes/reviews');
 const usersRouter = require('./routes/users');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const flash = require('connect-flash');
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 const User = require('./models/user');
 const mongoSanitize = require('express-mongo-sanitize');
+const helmet = require("helmet");
+const dbConnUrl =  process.env.DB_CONN_URL || 'mongodb://127.0.0.1:27017/yelp-camp';
 
-
-mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp');
+mongoose.connect(dbConnUrl);
 
 const db = mongoose.connection;
+
 db.on('error', console.error.bind(console, "connection error"));
 db.once('open', () =>{
     console.log('database connected!');
@@ -39,18 +42,77 @@ app.set("views", path.join(__dirname, 'views'));
 app.use(express.urlencoded({extended: true}));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
+
+const secret = process.env.SECRET || 'thisshouldbeabettersecret';
+
+const store = MongoStore.create({
+    mongoUrl: dbConnUrl,
+    touchAfter: 24*60*60, //in seconds
+    crypto: {
+        secret,
+    }
+});
+
 const sessionConfig = {
-    secret: 'thisissecret', 
+    store,
+    name: 'session',
+    secret, 
+    // secure: true
     saveUninitialized: true, 
     resave: false,
     cookie: {
         httpOnly: true,
-        expires: Date.now() + 1000 * 6* 60 * 24 *7,
-        maxAge:  1000 * 6* 60 * 24 *7,
+        expires: Date.now() + 1000 * 6* 60 * 24 *7, //in ms
+        maxAge:  1000 * 6* 60 * 24 *7, //in ms
     }
 };
 app.use(session(sessionConfig));
 app.use(flash());
+// app.use(helmet());
+//configuring allowed urls in HELMET
+const scriptSrcUrls = [
+    "https://stackpath.bootstrapcdn.com/",
+    "https://kit.fontawesome.com/",
+    "https://cdnjs.cloudflare.com/",
+    "https://cdn.jsdelivr.net",
+    "https://cdn.maptiler.com/", // add this
+];
+const styleSrcUrls = [
+    "https://kit-free.fontawesome.com/",
+    "https://stackpath.bootstrapcdn.com/",
+    "https://fonts.googleapis.com/",
+    "https://use.fontawesome.com/",
+    "https://cdn.jsdelivr.net",
+    "https://cdn.maptiler.com/", // add this
+];
+const connectSrcUrls = [
+    "https://api.maptiler.com/", // add this
+];
+const fontSrcUrls = [];
+app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: false,
+        directives: {
+          defaultSrc: ["'self'"],
+          connectSrc: ["'self'", ...connectSrcUrls],
+          scriptSrc: ["'self'", "'unsafe-inline'", ...scriptSrcUrls],
+          styleSrc: ["'self'", "'unsafe-inline'", ...styleSrcUrls],
+          workerSrc: ["'self'", "blob:"],
+          objectSrc: ["'none'"],
+          imgSrc: [
+            "'self'",
+            "blob:",
+            "data:",
+            "https://res.cloudinary.com/dmax6xlqb/", //SHOULD MATCH YOUR CLOUDINARY ACCOUNT! 
+            "https://images.unsplash.com/",
+        ],
+          upgradeInsecureRequests: [],
+          fontSrc: ["'self'", ...fontSrcUrls],
+        },
+      },
+    })
+  );
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -93,6 +155,8 @@ app.use((err, req, res, next) => {
     res.status(statusCode).render('error', { err });
 })
 
-app.listen(3000, () =>{
-    console.log("Listening on port 3000");
+const port = process.env.PORT || 3000;
+
+app.listen(port, () =>{
+    console.log(`Listening on port ${port}`);
 })
